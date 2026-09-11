@@ -33,11 +33,17 @@ Exactlane is **not** an MCP server, A2A agent, marketplace, or certification aut
 
 ## Live machine contract
 
-- Service root: https://preflight.happybitemochi.com/
-- Manifest: https://preflight.happybitemochi.com/.well-known/exactlane.json
-- OpenAPI: https://preflight.happybitemochi.com/openapi.json
-- Agent discovery text: https://preflight.happybitemochi.com/llms.txt
-- Sitemap: https://preflight.happybitemochi.com/sitemap.xml
+Canonical public discovery origin:
+
+- Service root: https://exactlane.dev/
+- Manifest: https://exactlane.dev/.well-known/exactlane.json
+- OpenAPI: https://exactlane.dev/openapi.json
+- Agent discovery text: https://exactlane.dev/llms.txt
+- Sitemap: https://exactlane.dev/sitemap.xml
+
+Temporary migration hostname (compatibility; not canonical):
+
+- https://preflight.happybitemochi.com/
 
 ## Scope of this repository
 
