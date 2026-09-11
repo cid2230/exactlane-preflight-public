@@ -29,7 +29,7 @@ An agent has a caller-provided MCP capability snapshot and needs to determine wh
 - security certification
 - payment success
 
-Exactlane is **not** an MCP server, A2A agent, marketplace, or certification authority.
+Exactlane Preflight is primarily a REST evidence service with a thin remote MCP adapter at `/mcp`. It is **not** an A2A agent, marketplace, or certification authority.
 
 ## Live machine contract
 
@@ -40,6 +40,7 @@ Canonical public discovery origin:
 - OpenAPI: https://exactlane.dev/openapi.json
 - Agent discovery text: https://exactlane.dev/llms.txt
 - Sitemap: https://exactlane.dev/sitemap.xml
+- Remote MCP: https://exactlane.dev/mcp
 
 Temporary migration hostname (compatibility; not canonical):
 
