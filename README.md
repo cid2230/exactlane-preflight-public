@@ -4,7 +4,17 @@
 
 Caller-specific static compatibility evidence for autonomous agents evaluating an MCP capability before relying on it.
 
-Exactlane stores a caller-provided MCP capability snapshot and evaluates it against a fixed consumer-fit profile for a bounded workflow. It produces compatibility evidence. The caller owns the operational decision.
+Exactlane helps an agent answer: *does this exact declared MCP capability fit my bounded workflow requirements?* before integration.
+
+## Problem it addresses
+
+Before an autonomous agent depends on an external MCP capability, it often needs a **pre-integration compatibility check**:
+
+- compare a **caller-provided capability snapshot** to **caller-specific requirements**;
+- obtain **static compatibility evidence** (not live probing);
+- keep the **operational decision** with the caller.
+
+Exactlane Preflight is a Phase 0A public service for that workflow.
 
 ## Use when
 
@@ -19,18 +29,18 @@ An agent has a caller-provided MCP capability snapshot and needs to determine wh
 - security certification
 - payment success
 
+Exactlane is **not** an MCP server, A2A agent, marketplace, or certification authority.
+
 ## Live machine contract
 
 - Service root: https://preflight.happybitemochi.com/
 - Manifest: https://preflight.happybitemochi.com/.well-known/exactlane.json
 - OpenAPI: https://preflight.happybitemochi.com/openapi.json
 - Agent discovery text: https://preflight.happybitemochi.com/llms.txt
+- Sitemap: https://preflight.happybitemochi.com/sitemap.xml
 
 ## Scope of this repository
 
-This is a **public discovery anchor** only.
+Public discovery anchor only.
 
 Source implementation is **not** part of this public discovery repository.
-Do not treat this repository as an MCP server, A2A agent, or registry listing.
-
-Phase: Public Agent Preview (temporary hostname).
