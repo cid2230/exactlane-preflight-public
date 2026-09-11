@@ -50,3 +50,12 @@ Temporary migration hostname (compatibility; not canonical):
 Public discovery anchor only.
 
 Source implementation is **not** part of this public discovery repository.
+
+## Official MCP Registry
+
+- **Server name:** `dev.exactlane/preflight`
+- **Version:** `0.1.0`
+- **Remote:** Streamable HTTP `https://exactlane.dev/mcp`
+- **Registry search:** https://registry.modelcontextprotocol.io/v0.1/servers?search=exactlane
+
+Primary tool: `check_mcp_capability` (adapter over Exactlane Phase 0A; no live probing; caller owns CONTINUE/UPDATE/HOLD).
