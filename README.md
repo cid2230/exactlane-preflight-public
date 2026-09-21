@@ -42,9 +42,7 @@ Canonical public discovery origin:
 - Sitemap: https://exactlane.dev/sitemap.xml
 - Remote MCP: https://exactlane.dev/mcp
 
-Temporary migration hostname (compatibility; not canonical):
-
-- https://preflight.happybitemochi.com/
+Snapshots of these documents are mirrored in `discovery/` so they can be read and diffed here. The live endpoints above are authoritative; the snapshots are regenerated from the deployed commit.
 
 ## Scope of this repository
 

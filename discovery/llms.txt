@@ -1,0 +1,139 @@
+# Exactlane Preflight
+
+## What is Exactlane?
+
+Exactlane checks whether a specific MCP capability revision fits a specific agent workflow before the caller relies on it.
+
+Exactlane compares a caller-provided MCP capability snapshot against caller-stated workflow requirements. The check is static. There is no live probing. Exactlane produces caller-specific, revision-specific compatibility evidence. The caller owns the decision.
+
+Exactlane is the check before the call.
+
+## Use when
+An agent has a caller-provided MCP capability snapshot and needs to know whether that exact revision fits its own bounded workflow requirements — before reliance.
+
+## Scope
+Static only. Evidence is computed from a caller-provided MCP capability snapshot compared with caller workflow requirements. Live endpoint observation is disabled. Exactlane does not probe live endpoints.
+
+## Does not prove
+- live availability
+- full MCP conformance
+- business-result correctness
+- provider trust
+- security certification
+- payment success
+- universal MCP validity
+
+Exactlane produces compatibility evidence only. The caller owns the operational decision. It is not a security scanner, certifier, uptime monitor, or universal validator.
+
+## Public Agent Preview
+Unauthenticated POST https://exactlane.dev/v0/public-access/grants issues short-lived scoped Preview access when enabled. The bearer token is disclosed only on the original 201; exact Idempotency-Key replay returns 200 without the token. See the public_access object in /.well-known/exactlane.json. A capability snapshot is a cached caller-provided claim, not live truth. Caller owns CONTINUE/UPDATE/HOLD. Live probing remains off. Disabled deployments return 403 PUBLIC_ACCESS_DISABLED. Enabled deployments require trusted-proxy process status CONFIGURED and a verified per-request client identity. When that identity is missing or invalid, REST POST /v0/public-access/grants returns HTTP 503 PUBLIC_ACCESS_IDENTITY_UNAVAILABLE. MCP check_mcp_capability returns HTTP 200 with result.isError and structuredContent.error.code PUBLIC_ACCESS_IDENTITY_UNAVAILABLE; that MCP identity failure is not HTTP 503.
+
+## Idempotency-Key
+Required on mutating REST writes: POST /v0/agents, POST /v0/capabilities, POST /v0/checks, POST /v0/revision-checks, and POST /v0/usage-events. Value: 8–128 visible ASCII characters without spaces. Missing or invalid keys return 400 INVALID_IDEMPOTENCY_KEY.
+
+Optional on POST /v0/public-access/grants only. If supplied, exact replay for the same hashed client identity returns 200 without the bearer. Different hashed client identities use independent idempotency namespaces. Callers who share a hashed identity (NAT, VPN, or shared network egress) share that namespace. MCP POST /mcp does not take a caller Idempotency-Key.
+
+## Snapshot bytes and grant TTL
+Public Agent Preview grants last 1800 seconds. POST /v0/capabilities returns snapshot_digest (integrity metadata), not snapshot bytes. GET /v0/capabilities/{id} returns snapshot bytes only while the owner credential is valid. After grant expiry, snapshot_digest cannot be used to fetch bytes — there is no digest-retrieval API. Keep inline snapshot bytes or re-submit with a new grant.
+
+## Before you spend a check (snapshot-lint)
+Unauthenticated POST https://exactlane.dev/v0/snapshot-lint with {"snapshot": ..., "requirements": ...} reports deterministic preconditions without consuming a grant, a quota or a check. No Idempotency-Key. It names unsupported JSON Schema keywords for the selected profile, snapshot/requirements version pairing, protocol revision or transport outside the profile, required tools the snapshot does not declare, estimated_input_bytes with no declared max_input_bytes, and staleness.
+
+A lint is not a compatibility check and is not evidence. Each finding carries expect (UNSUPPORTED, NOT_RUN, FAIL, or HTTP_422) describing what the evaluator would do with that precondition; is_compatibility_evidence is always false. Only a finished report has a verdict, and the caller still owns CONTINUE/UPDATE/HOLD. Lint first when a snapshot uses schema keywords outside the supported set: the fixed profile reports unknown keywords as UNSUPPORTED rather than ignoring them, and Public Agent Preview allows only 3 checks per grant.
+
+## After a finished check (usage-events)
+A finished check report is compatibility evidence only. Exactlane does not derive CONTINUE, UPDATE_INTEGRATION, or HOLD from the verdict.
+
+To attest how the caller consumed that report, POST https://exactlane.dev/v0/usage-events while the same credential still owns the check run.
+
+Required JSON fields (UsageEventCreate): check_run_id, integration_ref, workflow_ref, trigger, decision, report_consumed, autonomous, is_demo, is_retry, is_health_check, platform_triggered, occurred_at.
+
+- decision is client-attested: CONTINUE, UPDATE_INTEGRATION, or HOLD. Exactlane validates and records the supplied value; there is no verdict-to-decision mapping.
+- report_consumed is a required boolean (not optional, not inferred).
+- trigger must be one of the public values below.
+- Idempotency-Key is required (8–128 visible ASCII, no spaces).
+- Public Agent Preview quota: 2 usage_events per grant.
+
+check_mcp_capability never POSTs a usage event (structured output usage_event_created is always false) and never discloses the internal Preview bearer. MCP-only callers who need an attestation must use the REST grant/check/usage-events path.
+
+## Public trigger values
+Use exactly these already-supported values (case-sensitive):
+
+- NEW_WORK
+- DEPENDENCY_CHANGE
+- REQUIREMENTS_CHANGE
+- INTEGRATION_FAILURE
+- OTHER_REAL_WORK
+
+Other strings return 422 INVALID_TRIGGER. Do not invent additional trigger names.
+
+## REST pairing (grant / check / usage)
+1. POST /v0/public-access/grants (Idempotency-Key optional; capture bearer from 201 only)
+2. POST /v0/capabilities (Idempotency-Key required)
+3. POST /v0/checks (Idempotency-Key required) — receive a finished report
+4. POST /v0/usage-events (Idempotency-Key required) — attest decision + report_consumed
+5. DELETE /v0/agents/{agent_id} or wait for 1800s grant expiry
+
+MCP check_mcp_capability performs steps 1–3 internally and revokes the grant before returning. It does not perform step 4.
+
+## Revision-aware checks (a later revision of the same capability)
+Keep the snapshot and the finished report from an earlier check. When the provider ships a new revision, POST https://exactlane.dev/v0/revision-checks (Idempotency-Key required; scopes checks:write and capabilities:write) with the new snapshot, the same requirements and capability_key, and previous.snapshot plus previous.report. previous.revision_receipt from an earlier revision check is optional. Over MCP, pass the same objects as the optional previous argument of check_mcp_capability.
+
+- The response is the normal check report, unchanged, plus a separate revision_receipt (exactlane.revision-receipt/0.1).
+- Exactlane re-evaluates the previous snapshot instead of trusting the supplied report. It never looks up earlier calls, and there is no receipt lookup route.
+- The global previous-to-current comparison is authoritative: previous_conclusion_holds, conclusion_transition, and the changed checks.
+- At most 32 changes are also evaluated one at a time, labelled DIRECT_EFFECT_OBSERVED, NO_ISOLATED_EFFECT_OBSERVED, or NOT_EVALUATED. Isolated evaluation cannot rule out interaction effects; INTERACTION_EFFECT_POSSIBLE is set whenever more than one change is present.
+- A revision check consumes one capability revision and one check. Existing request, report, and runtime limits apply; previous.report and the receipt are at most 16 KiB each.
+- Requirements must be identical (422 REQUIREMENTS_CHANGED); previous.snapshot must be the snapshot previous.report evaluated (422 PREVIOUS_SNAPSHOT_MISMATCH).
+- The receipt is evidence only. The caller owns CONTINUE, UPDATE_INTEGRATION, and HOLD.
+
+## Common missing fields
+- A rejected tools/call returns HTTP 200 with a JSON-RPC error in the body, not a 4xx; do not treat it as a transport failure. Transport-level problems (missing MCP-Protocol-Version or Mcp-Method, unsupported protocol version) do return 400.
+- A rejected tools/call carries the cause in error.data: the failing condition's code, the required arguments (capability_key, snapshot, requirements), any unsupported field names you sent, and a pointer to POST /v0/snapshot-lint. Read error.data before retrying; a Preview grant allows three checks, so blind retries exhaust it.
+- Idempotency-Key on POST /v0/capabilities, POST /v0/checks, and POST /v0/usage-events (optional only on grants). Missing or invalid: 400 INVALID_IDEMPOTENCY_KEY.
+- MCP handshake: MCP-Protocol-Version (2026-07-28), Mcp-Method matching the JSON-RPC method, params._meta.io.modelcontextprotocol/protocolVersion, params._meta.io.modelcontextprotocol/clientCapabilities (object; {} is accepted). tools/call also needs Mcp-Name matching params.name.
+- Snapshot bytes: POST /v0/capabilities returns snapshot_digest, not bytes. After grant expiry there is no digest-retrieval API; keep inline snapshot bytes or resubmit.
+- UsageEventCreate: include every required field above; report_consumed and decision are not optional. integration_ref and workflow_ref are opaque refs (letters, digits, dot, underscore, colon, hyphen). Unique per principal+integration_ref+workflow_ref (409 DUPLICATE_WORKFLOW_EVENT). occurred_at must be within 45 days and not more than five minutes in the future.
+
+## Remote MCP
+Stateless Streamable HTTP MCP is available at https://exactlane.dev/mcp (path /mcp). The primary tool is check_mcp_capability. It adapts existing Exactlane service operations and does not probe live endpoints. Caller owns CONTINUE/UPDATE/HOLD. OpenAPI remains the REST contract; MCP metadata belongs to the MCP surface.
+
+check_mcp_capability internally issues a Public Agent Preview grant, stores the caller snapshot, runs the static check, and revokes the grant before returning. The Preview bearer is never disclosed. Structured output usage_event_created is always false: this tool does not POST /v0/usage-events. With the optional previous argument, the same call runs a revision-aware check and structured output adds revision_receipt beside the unchanged report.
+
+GET /mcp returns 405 (POST only).
+
+CONTROLLED acceptance uses POST JSON-RPC 2.0 methods server/discover, tools/list, and tools/call. Required headers: MCP-Protocol-Version (2026-07-28) and Mcp-Method (must equal the JSON-RPC method). tools/call also requires Mcp-Name matching params.name. Required params._meta: io.modelcontextprotocol/protocolVersion (must equal the protocol header) and io.modelcontextprotocol/clientCapabilities (object; {} is accepted). Content-Type: application/json.
+
+Example tools/list:
+
+POST /mcp
+Content-Type: application/json
+User-Agent: exactlane-caller/0.1
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/list
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+      "io.modelcontextprotocol/clientCapabilities": {}
+    }
+  }
+}
+
+## Official MCP Registry
+Published identity: dev.exactlane/preflight @0.1.0
+
+## Machine contract
+- https://exactlane.dev/.well-known/exactlane.json
+- https://exactlane.dev/openapi.json
+- https://exactlane.dev/mcp
+- /.well-known/exactlane.json
+- /openapi.json
+- /mcp
+- /llms.txt
+
+Canonical public discovery origin: https://exactlane.dev

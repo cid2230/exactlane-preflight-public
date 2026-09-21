@@ -1,0 +1,56 @@
+{
+  "controlled_methods": [
+    "server/discover",
+    "tools/list",
+    "tools/call"
+  ],
+  "endpoint": "https://exactlane.dev/mcp",
+  "http": {
+    "get": 405,
+    "method": "POST",
+    "methods": [
+      "POST"
+    ],
+    "note": "POST only; GET returns 405"
+  },
+  "note": "public_access.enabled is true on this process (see /.well-known/exactlane.json). tools/call / check_mcp_capability still requires the documented handshake and Preview grant issuance. Discovery (server/discover, tools/list) may still work without a Preview grant. Clients must read /.well-known/exactlane.json.",
+  "origin": "https://exactlane.dev",
+  "params": {
+    "_meta": {
+      "io.modelcontextprotocol/clientCapabilities": "required object",
+      "io.modelcontextprotocol/protocolVersion": "required; must equal MCP-Protocol-Version",
+      "required": true
+    }
+  },
+  "path": "/mcp",
+  "primary_tool": "check_mcp_capability",
+  "protocol": "2026-07-28",
+  "protocolVersion": "2026-07-28",
+  "public_access": {
+    "enabled": true,
+    "see": "/.well-known/exactlane.json",
+    "tools_call": {
+      "requires_preview": true,
+      "when_disabled": {
+        "code": "PUBLIC_ACCESS_DISABLED",
+        "http_status": 200,
+        "isError": true
+      }
+    }
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://exactlane.dev/mcp"
+    }
+  ],
+  "required_headers": [
+    "MCP-Protocol-Version",
+    "Mcp-Method"
+  ],
+  "tools_call_required_headers": [
+    "Mcp-Name"
+  ],
+  "transport": "streamable-http",
+  "url": "https://exactlane.dev/mcp"
+}

@@ -1,0 +1,340 @@
+{
+  "claims": {
+    "business_result_correctness": false,
+    "full_mcp_conformance": false,
+    "live_availability": false,
+    "operator_independence": false,
+    "payment_success": false,
+    "provider_trust": false,
+    "security_certification": false
+  },
+  "limits": {
+    "capability_revisions_per_principal_per_day": 5,
+    "checks_per_principal_per_day": 20,
+    "constraints_per_check": 30,
+    "isolated_change_evaluations": 32,
+    "previous_report_bytes": 16384,
+    "report_bytes": 16384,
+    "request_body_bytes": 262144,
+    "revision_receipt_bytes": 16384,
+    "tools_per_snapshot": 10
+  },
+  "live_observation": {
+    "enabled": false,
+    "status": "LIVE_MODE_DISABLED"
+  },
+  "mcp": {
+    "adapter_only": true,
+    "caller_owns_decision": true,
+    "handshake": {
+      "content_type": "application/json",
+      "controlled_methods": [
+        "server/discover",
+        "tools/list",
+        "tools/call"
+      ],
+      "http_method": "POST",
+      "params_meta": {
+        "io.modelcontextprotocol/clientCapabilities": "required object",
+        "io.modelcontextprotocol/protocolVersion": "required; must equal MCP-Protocol-Version"
+      },
+      "params_meta_required": true,
+      "protocol_version": "2026-07-28",
+      "required_headers": [
+        "MCP-Protocol-Version",
+        "Mcp-Method"
+      ],
+      "tools_call_required_headers": [
+        "Mcp-Name"
+      ]
+    },
+    "http_pairing": {
+      "check_mcp_capability": "Internally POST /v0/public-access/grants, POST /v0/capabilities, and POST /v0/checks, then DELETE /v0/agents/{agent_id}. The Preview bearer is never disclosed to the MCP caller. Does not POST /v0/usage-events.",
+      "check_mcp_capability_with_previous": "With the optional previous argument: internally POST /v0/public-access/grants and POST /v0/revision-checks, then DELETE /v0/agents/{agent_id}. structuredContent adds revision_receipt beside the unchanged report. Does not POST /v0/usage-events.",
+      "usage_events": "To attest CONTINUE, UPDATE_INTEGRATION, or HOLD after a finished check, use REST POST /v0/usage-events with the same still-valid grant credential."
+    },
+    "identity_unavailable": {
+      "code": "PUBLIC_ACCESS_IDENTITY_UNAVAILABLE",
+      "http_status": 200,
+      "isError": true
+    },
+    "live_observation": false,
+    "path": "/mcp",
+    "primary_tool": "check_mcp_capability",
+    "protocol_revision": "2026-07-28",
+    "sse_only_primary": false,
+    "stateless": true,
+    "tools": [
+      "check_mcp_capability"
+    ],
+    "transport": "streamable-http",
+    "url": "/mcp",
+    "usage_event_created": false
+  },
+  "openapi": "/openapi.json",
+  "phase": "0A_STATIC",
+  "product": "Exactlane Preflight",
+  "profile": {
+    "annotation_schema_keywords": {
+      "caller_provided_inputs": "format, or readOnly true, anywhere inside an input property the caller provides makes that input check UNSUPPORTED; common MCP SDKs enforce format on tool inputs",
+      "invalid_value": "a value of another type is UNSUPPORTED",
+      "keywords": [
+        "$comment",
+        "deprecated",
+        "format",
+        "readOnly",
+        "writeOnly",
+        "x-mcp-header"
+      ],
+      "semantics": "accepted as annotations that do not change which instances validate; not evaluated",
+      "value_types": {
+        "$comment": "string",
+        "deprecated": "boolean",
+        "format": "string",
+        "readOnly": "boolean",
+        "writeOnly": "boolean",
+        "x-mcp-header": "string"
+      },
+      "write_only_required_output": "writeOnly true on any schema along a required output path makes that output check UNSUPPORTED",
+      "x_mcp_header": "inputSchema only; checked against the MCP 2026-07-28 Streamable HTTP rules (HTTP token, case-insensitively unique, on a string, integer or boolean property reached only through properties keys). A violation FAILs tool:<name>:x-mcp-header because conforming clients must exclude the tool; x-mcp-header in outputSchema is UNSUPPORTED"
+    },
+    "array_item_schema_check": {
+      "activation": "explicit per-tool caller requirement",
+      "composition_and_references": "unsupported",
+      "evidence_paths": "RFC 6901 JSON Pointers relative to the selected schema root",
+      "mode_gate": "exact case-sensitive caller_profile_mode membership",
+      "required_items_form": "object",
+      "schema_locations": [
+        "inputSchema",
+        "outputSchema"
+      ],
+      "scope": "all explicit type=array nodes in supported schema-bearing positions",
+      "tuple_and_boolean_item_schemas": "unsupported"
+    },
+    "exposed_tool_identifier_check": {
+      "combined_max_characters": 264,
+      "formula": "server_identifier + separator + tool.name",
+      "length_unit": "visible ASCII characters",
+      "separator_max_characters": 8,
+      "server_identifier_max_characters": 128
+    },
+    "id": "mcp-consumer-fit",
+    "live_observation": false,
+    "output_path_syntax": "object.key and array[] traversal",
+    "protocol": "mcp",
+    "protocol_revision": "2026-07-28",
+    "schema_dialect_identifier_check": {
+      "comparison": "exact string equality",
+      "locations": [
+        "inputSchema.$schema",
+        "outputSchema.$schema"
+      ],
+      "max_characters": 256,
+      "syntax": "absolute visible-ASCII URI"
+    },
+    "snapshot_schema_version": "exactlane.mcp-snapshot/0.1",
+    "source_kinds": [
+      "CALLER_PROVIDED"
+    ],
+    "supported_schema_keywords": [
+      "$comment",
+      "$schema",
+      "additionalProperties",
+      "default",
+      "deprecated",
+      "description",
+      "examples",
+      "format",
+      "items",
+      "properties",
+      "readOnly",
+      "required",
+      "title",
+      "type",
+      "writeOnly",
+      "x-mcp-header"
+    ],
+    "transport": "streamable-http",
+    "version": "0.3"
+  },
+  "public_access": {
+    "a2a": false,
+    "agent_gotchas": [
+      "Idempotency-Key is required on POST /v0/capabilities, POST /v0/checks, POST /v0/revision-checks, and POST /v0/usage-events; optional only on POST /v0/public-access/grants.",
+      "POST /mcp requires MCP-Protocol-Version, Mcp-Method, and params._meta (io.modelcontextprotocol/protocolVersion plus io.modelcontextprotocol/clientCapabilities); tools/call also requires Mcp-Name.",
+      "snapshot_digest is not a retrieval key after grant expiry; keep inline snapshot bytes or resubmit.",
+      "check_mcp_capability does not POST /v0/usage-events (usage_event_created is false) and does not disclose the Preview bearer."
+    ],
+    "caller_owns_decision": true,
+    "enabled": true,
+    "grant": {
+      "authentication": null,
+      "credential_disclosure": "once",
+      "disabled": {
+        "code": "PUBLIC_ACCESS_DISABLED",
+        "status": 403
+      },
+      "idempotency_key": "optional",
+      "idempotency_namespace": "hashed_caller_identity",
+      "idempotency_namespace_shared_by": "same_hash_including_nat_vpn_shared_egress",
+      "identity_unavailable": {
+        "code": "PUBLIC_ACCESS_IDENTITY_UNAVAILABLE",
+        "status": 503
+      },
+      "method": "POST",
+      "original_status": 201,
+      "path": "/v0/public-access/grants",
+      "replay_omits_bearer": true,
+      "replay_status": 200,
+      "request": {
+        "additionalProperties": false,
+        "properties": {
+          "display_label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "issuance": {
+      "global_hour_emergency": 250,
+      "global_utc_day_emergency": 2000,
+      "new_issuance_requires_verified_client_hash": true,
+      "per_client_hour": 5,
+      "per_client_utc_day": 30,
+      "retry_after": true,
+      "unattributed_shares_per_client_bucket": false
+    },
+    "lifetime_seconds": 1800,
+    "live_observation": false,
+    "mcp_server": true,
+    "non_claims": [
+      "live availability",
+      "full MCP conformance",
+      "business-result correctness",
+      "provider trust",
+      "security certification",
+      "payment success"
+    ],
+    "notes": "Short-lived Public Agent Preview access. Caller owns CONTINUE/UPDATE/HOLD. Live probing remains off.",
+    "quotas": {
+      "capabilities": 2,
+      "checks": 3,
+      "usage_events": 2
+    },
+    "scopes": [
+      "capabilities:write",
+      "capabilities:read",
+      "checks:write",
+      "checks:read",
+      "usage:write",
+      "self:delete"
+    ],
+    "self_revoke": {
+      "method": "DELETE",
+      "path": "/v0/agents/{agent_id}",
+      "scope": "self:delete"
+    },
+    "snapshot": {
+      "after_grant_expiry": "keep_inline_bytes_or_resubmit",
+      "cached_claim_not_live_truth": true,
+      "digest_retrieves_bytes": false,
+      "owner_get_while_credential_valid": "/v0/capabilities/{capability_id}"
+    },
+    "usage_events": {
+      "decision": "client-attested CONTINUE, UPDATE_INTEGRATION, or HOLD; Exactlane does not derive it from the report",
+      "idempotency_key": "required",
+      "method": "POST",
+      "path": "/v0/usage-events",
+      "report_consumed": "required boolean; Exactlane does not infer it",
+      "required_fields": [
+        "check_run_id",
+        "integration_ref",
+        "workflow_ref",
+        "trigger",
+        "decision",
+        "report_consumed",
+        "autonomous",
+        "is_demo",
+        "is_retry",
+        "is_health_check",
+        "platform_triggered",
+        "occurred_at"
+      ],
+      "triggers": [
+        "NEW_WORK",
+        "DEPENDENCY_CHANGE",
+        "REQUIREMENTS_CHANGE",
+        "INTEGRATION_FAILURE",
+        "OTHER_REAL_WORK"
+      ],
+      "when": "after a finished owned check, while the same credential is still valid"
+    },
+    "writes": {
+      "idempotency_key": {
+        "POST /v0/capabilities": "required",
+        "POST /v0/checks": "required",
+        "POST /v0/public-access/grants": "optional",
+        "POST /v0/revision-checks": "required",
+        "POST /v0/usage-events": "required"
+      }
+    }
+  },
+  "purpose": "Caller-specific MCP capability compatibility evidence for a specific agent workflow before reliance. Static snapshot versus requirements; no live probing.",
+  "revision_checks": {
+    "analysis": {
+      "digest": "sha256:721ad9999bd0d8cb420dea38806f18d7c6a4f2efe91338efee53c2e30ce6436e",
+      "id": "static-revision-analysis",
+      "version": "0.1"
+    },
+    "authoritative_result": "global previous-to-current comparison of check results",
+    "baseline": "the previous snapshot is re-evaluated; the supplied report is never trusted",
+    "caller_owns_decision": true,
+    "check_report": "unchanged exactlane.check-report/0.1, identical to POST /v0/checks at the same instant",
+    "consumes": {
+      "capability_revisions": 1,
+      "checks": 1
+    },
+    "idempotency_key": "required",
+    "isolated_change_evaluations": {
+      "interaction_effects": "INTERACTION_EFFECT_POSSIBLE whenever more than one change is present",
+      "max": 32,
+      "results": [
+        "DIRECT_EFFECT_OBSERVED",
+        "NO_ISOLATED_EFFECT_OBSERVED",
+        "NOT_EVALUATED"
+      ]
+    },
+    "live_observation": false,
+    "mcp": "check_mcp_capability with the optional previous argument",
+    "method": "POST",
+    "path": "/v0/revision-checks",
+    "receipt_lookup": false,
+    "receipt_schema_version": "exactlane.revision-receipt/0.1",
+    "receipt_storage": "not stored beyond the 24-hour idempotency replay",
+    "request_previous": {
+      "optional": [
+        "revision_receipt"
+      ],
+      "required": [
+        "snapshot",
+        "report"
+      ],
+      "same_requirements_and_capability_key": true
+    },
+    "response": [
+      "check",
+      "revision_receipt"
+    ],
+    "scopes": [
+      "checks:write",
+      "capabilities:write"
+    ]
+  },
+  "schema_version": "exactlane.service-manifest/0.1",
+  "source_kinds": [
+    "CALLER_PROVIDED"
+  ]
+}

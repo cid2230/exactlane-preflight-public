@@ -1,0 +1,2995 @@
+{
+  "components": {
+    "parameters": {
+      "IdempotencyKey": {
+        "description": "Required on POST /v0/agents, POST /v0/capabilities, POST /v0/checks, POST /v0/revision-checks, and POST /v0/usage-events. 8 to 128 visible ASCII characters without spaces. Same key plus same body replays; same key plus a changed body returns 409.",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "required": true,
+        "schema": {
+          "maxLength": 128,
+          "minLength": 8,
+          "pattern": "^[!-~]+$",
+          "type": "string"
+        }
+      },
+      "OptionalIdempotencyKey": {
+        "description": "Optional on POST /v0/public-access/grants only. If supplied, exact replay for the same hashed client identity returns 200 without the bearer token. Different hashed client identities use independent idempotency namespaces. Callers who share a hashed identity (NAT, VPN, or shared network egress) share that namespace. Subsequent Public Preview capability, check, and usage-event writes still require Idempotency-Key.",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "required": false,
+        "schema": {
+          "maxLength": 128,
+          "minLength": 8,
+          "pattern": "^[!-~]+$",
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "AgentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "display_label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operator_group_ref": {
+            "description": "Admin-assigned opaque grouping",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "default": [
+              "capabilities:write",
+              "capabilities:read",
+              "checks:write",
+              "checks:read",
+              "usage:write",
+              "self:delete"
+            ],
+            "items": {
+              "enum": [
+                "capabilities:write",
+                "capabilities:read",
+                "checks:write",
+                "checks:read",
+                "usage:write",
+                "self:delete"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "traffic_class": {
+            "default": "UNKNOWN",
+            "enum": [
+              "CONTROLLED",
+              "EXTERNAL_REVIEWED",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_label"
+        ],
+        "type": "object"
+      },
+      "AgentCreateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "$ref": "#/components/schemas/Principal"
+          },
+          "credential": {
+            "$ref": "#/components/schemas/BearerCredential"
+          }
+        },
+        "required": [
+          "agent",
+          "credential"
+        ],
+        "type": "object"
+      },
+      "AgentRevocationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "agent"
+        ],
+        "type": "object"
+      },
+      "ArrayItemSchemaRequirement": {
+        "additionalProperties": false,
+        "description": "Caller-specific requirement over every explicit type=array node in one bounded tool schema location",
+        "properties": {
+          "applies_when_modes": {
+            "items": {
+              "$ref": "#/components/schemas/CallerProfileMode"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "schema_location": {
+            "enum": [
+              "input",
+              "output"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_location"
+        ],
+        "type": "object"
+      },
+      "BearerCredential": {
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "description": "Returned in this response; only a digest is stored",
+            "type": "string"
+          },
+          "type": {
+            "const": "Bearer"
+          }
+        },
+        "required": [
+          "type",
+          "token"
+        ],
+        "type": "object"
+      },
+      "CallerProfileMode": {
+        "description": "Opaque caller profile mode used only for exact, case-sensitive GAP-03 applicability",
+        "maxLength": 64,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$",
+        "type": "string"
+      },
+      "Capability": {
+        "properties": {
+          "capability_key": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "revision_label": {
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/CapabilitySnapshot"
+          },
+          "snapshot_digest": {
+            "description": "Integrity hash of the stored caller-provided snapshot. Not a retrieval key. After Public Preview grant expiry, this digest cannot be used to fetch snapshot bytes; keep inline bytes or re-submit. GET /v0/capabilities/{capability_id} returns bytes only while the owner credential is still valid. There is no digest-fetch API.",
+            "type": "string"
+          },
+          "source_kind": {
+            "const": "CALLER_PROVIDED"
+          }
+        },
+        "required": [
+          "id",
+          "capability_key",
+          "revision_label",
+          "snapshot_digest",
+          "source_kind",
+          "created_at",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "CapabilityCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "revision_label": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/CapabilitySnapshot"
+          }
+        },
+        "required": [
+          "capability_key",
+          "revision_label",
+          "snapshot"
+        ],
+        "type": "object"
+      },
+      "CapabilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "$ref": "#/components/schemas/Capability"
+          }
+        },
+        "required": [
+          "capability"
+        ],
+        "type": "object"
+      },
+      "CapabilitySnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "protocol": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "revision": {
+                "maxLength": 64,
+                "type": "string"
+              },
+              "transport": {
+                "maxLength": 64,
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "schema_version": {
+            "maxLength": 80,
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityTool"
+            },
+            "maxItems": 10,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CapabilityTool": {
+        "additionalProperties": false,
+        "properties": {
+          "_meta": {
+            "description": "Accepted for tools/list compatibility and discarded before storage, digest and evaluation",
+            "type": "object"
+          },
+          "annotations": {
+            "description": "Accepted for tools/list compatibility and discarded before storage, digest and evaluation",
+            "type": "object"
+          },
+          "description": {
+            "description": "Accepted for tools/list compatibility and discarded before storage, digest and evaluation",
+            "type": "string"
+          },
+          "icons": {
+            "description": "Accepted for tools/list compatibility and discarded before storage, digest and evaluation",
+            "type": "array"
+          },
+          "inputSchema": {
+            "$ref": "#/components/schemas/JsonSchemaObject"
+          },
+          "max_input_bytes": {
+            "maximum": 262144,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "outputSchema": {
+            "$ref": "#/components/schemas/JsonSchemaObject"
+          },
+          "title": {
+            "description": "Accepted for tools/list compatibility and discarded before storage, digest and evaluation",
+            "maxLength": 256,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "CheckCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_revision_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "previous_capability_revision_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileRef"
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/SupportedConsumerRequirements"
+          },
+          "source_kind": {
+            "const": "CALLER_PROVIDED"
+          }
+        },
+        "required": [
+          "capability_revision_id",
+          "source_kind",
+          "profile",
+          "requirements"
+        ],
+        "type": "object"
+      },
+      "CheckReport": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckResult"
+            },
+            "type": "array"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "evaluated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lifecycle": {
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "FINISHED",
+              "CANCELLED"
+            ],
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "profile": {
+            "type": "object"
+          },
+          "requirements_digest": {
+            "type": "string"
+          },
+          "revision_changes": {
+            "type": "object"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "runner": {
+            "type": "object"
+          },
+          "schema_version": {
+            "const": "exactlane.check-report/0.1"
+          },
+          "source": {
+            "properties": {
+              "captured_at": {
+                "format": "date-time",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "kind": {
+                "const": "CALLER_PROVIDED"
+              },
+              "live_endpoint_observed": {
+                "const": false
+              },
+              "observed_at": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "kind",
+              "live_endpoint_observed"
+            ],
+            "type": "object"
+          },
+          "subject": {
+            "type": "object"
+          },
+          "trust": {
+            "type": "object"
+          },
+          "verdict": {
+            "description": "Finished-report aggregation precedence: any ERROR produces SYSTEM_ERROR; otherwise any FAIL produces FAIL; otherwise any UNSUPPORTED produces UNSUPPORTED; otherwise any NOT_RUN produces INCOMPLETE; otherwise the verdict is PASS. Report-level UNSUPPORTED and SYSTEM_ERROR are finished-report outcomes, not HTTP error responses.",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "INCOMPLETE",
+              "UNSUPPORTED",
+              "SYSTEM_ERROR",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "schema_version",
+          "run_id",
+          "lifecycle",
+          "verdict",
+          "subject",
+          "profile",
+          "runner",
+          "requirements_digest",
+          "source",
+          "coverage",
+          "checks",
+          "revision_changes",
+          "trust",
+          "evaluated_at",
+          "limitations"
+        ],
+        "type": "object"
+      },
+      "CheckResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "$ref": "#/components/schemas/CheckReport"
+          }
+        },
+        "required": [
+          "check"
+        ],
+        "type": "object"
+      },
+      "CheckResult": {
+        "properties": {
+          "check_id": {
+            "type": "string"
+          },
+          "evidence_path": {
+            "type": "string"
+          },
+          "expected": {},
+          "observed": {},
+          "reason": {
+            "type": "string"
+          },
+          "result": {
+            "description": "Per-check evidence result. PASS: the condition was evaluated with supported semantics and the caller's requirement was met. FAIL: the evaluator proved a concrete incompatibility with the caller's requirement. NOT_RUN: the check did not execute because evidence was missing or stale, or because a prerequisite check could not run. UNSUPPORTED: the condition depends on semantics outside the fixed evaluator profile; this is neither proof of compatibility nor incompatibility. ERROR: a bounded internal runner, artifact, or report condition was represented as a check result.",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_RUN",
+              "UNSUPPORTED",
+              "ERROR"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "check_id",
+          "result"
+        ],
+        "type": "object"
+      },
+      "ConsumerRequirements": {
+        "additionalProperties": false,
+        "properties": {
+          "exposed_tool_identifier": {
+            "$ref": "#/components/schemas/ExposedToolIdentifierRule"
+          },
+          "max_snapshot_age_seconds": {
+            "maximum": 2592000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "protocol_revision": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "required_tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolRequirement"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "exactlane.consumer-requirements/0.1"
+          },
+          "transport": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "protocol_revision",
+          "transport",
+          "required_tools"
+        ],
+        "type": "object"
+      },
+      "ConsumerRequirementsV02": {
+        "additionalProperties": false,
+        "properties": {
+          "caller_profile_mode": {
+            "$ref": "#/components/schemas/CallerProfileMode"
+          },
+          "exposed_tool_identifier": {
+            "$ref": "#/components/schemas/ExposedToolIdentifierRule"
+          },
+          "max_snapshot_age_seconds": {
+            "maximum": 2592000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "protocol_revision": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "required_tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolRequirementV02"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          },
+          "schema_version": {
+            "description": "Requirements 0.2 select profile 0.2 and 0.3 select profile 0.3; the fields are the same",
+            "enum": [
+              "exactlane.consumer-requirements/0.2",
+              "exactlane.consumer-requirements/0.3"
+            ]
+          },
+          "transport": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "protocol_revision",
+          "transport",
+          "required_tools"
+        ],
+        "type": "object"
+      },
+      "Coverage": {
+        "additionalProperties": false,
+        "properties": {
+          "errors": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "executed": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "failed": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "not_run": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "passed": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "required": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "unsupported": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "required",
+          "executed",
+          "passed",
+          "failed",
+          "not_run",
+          "unsupported",
+          "errors"
+        ],
+        "type": "object"
+      },
+      "Error": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "details": {},
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "ExposedToolIdentifierRule": {
+        "additionalProperties": false,
+        "description": "For each required tool, compare len(server_identifier + separator + tool.name) with max_characters; all parts are visible ASCII",
+        "properties": {
+          "max_characters": {
+            "maximum": 264,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "separator": {
+            "maxLength": 8,
+            "minLength": 1,
+            "pattern": "^[!-~]+$",
+            "type": "string"
+          },
+          "server_identifier": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[!-~]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "server_identifier",
+          "separator",
+          "max_characters"
+        ],
+        "type": "object"
+      },
+      "JsonSchemaObject": {
+        "description": "JSON Schema object; the fixed profile supports only its documented keyword subset",
+        "type": "object"
+      },
+      "Principal": {
+        "additionalProperties": false,
+        "properties": {
+          "access_kind": {
+            "enum": [
+              "bootstrap",
+              "public_preview"
+            ],
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "display_label": {
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "operator_group_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revoked_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "items": {
+              "enum": [
+                "capabilities:write",
+                "capabilities:read",
+                "checks:write",
+                "checks:read",
+                "usage:write",
+                "self:delete"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "traffic_class": {
+            "enum": [
+              "CONTROLLED",
+              "EXTERNAL_REVIEWED",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_label",
+          "scopes",
+          "traffic_class",
+          "access_kind",
+          "created_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "type": "object"
+      },
+      "ProfileRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "const": "mcp-consumer-fit"
+          },
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2",
+              "0.3"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ],
+        "type": "object"
+      },
+      "PublicAccessDescriptor": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "kind": {
+            "const": "public_preview"
+          },
+          "lifetime_seconds": {
+            "const": 1800,
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "quotas": {
+            "additionalProperties": false,
+            "properties": {
+              "capabilities": {
+                "const": 2,
+                "type": "integer"
+              },
+              "checks": {
+                "const": 3,
+                "type": "integer"
+              },
+              "usage_events": {
+                "const": 2,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "capabilities",
+              "checks",
+              "usage_events"
+            ],
+            "type": "object"
+          },
+          "scopes": {
+            "items": {
+              "enum": [
+                "capabilities:write",
+                "capabilities:read",
+                "checks:write",
+                "checks:read",
+                "usage:write",
+                "self:delete"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "lifetime_seconds",
+          "expires_at",
+          "quotas",
+          "scopes",
+          "notes"
+        ],
+        "type": "object"
+      },
+      "PublicAccessGrantCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "display_label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PublicAccessGrantResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "access": {
+            "$ref": "#/components/schemas/PublicAccessDescriptor"
+          },
+          "agent": {
+            "$ref": "#/components/schemas/Principal"
+          },
+          "credential": {
+            "description": "Present only on the original 201; omitted or null on replay",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BearerCredential"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "credential_disclosure": {
+            "const": "once"
+          }
+        },
+        "required": [
+          "agent",
+          "access",
+          "credential_disclosure"
+        ],
+        "type": "object"
+      },
+      "RevisionCheckCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "capability_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "previous": {
+            "$ref": "#/components/schemas/RevisionCheckPrevious"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileRef"
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/SupportedConsumerRequirements"
+          },
+          "revision_label": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/CapabilitySnapshot"
+          },
+          "source_kind": {
+            "const": "CALLER_PROVIDED"
+          }
+        },
+        "required": [
+          "capability_key",
+          "revision_label",
+          "source_kind",
+          "profile",
+          "requirements",
+          "snapshot",
+          "previous"
+        ],
+        "type": "object"
+      },
+      "RevisionCheckPrevious": {
+        "additionalProperties": false,
+        "properties": {
+          "report": {
+            "$ref": "#/components/schemas/CheckReport",
+            "description": "The finished check report for previous.snapshot, at most 16 KiB. It is re-evaluated, never trusted; it must use the same requirements, profile and capability_key."
+          },
+          "revision_receipt": {
+            "$ref": "#/components/schemas/RevisionReceipt",
+            "description": "Optional previous revision receipt whose current.report_digest names previous.report."
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/CapabilitySnapshot",
+            "description": "The caller-provided snapshot that previous.report evaluated; its digest must match."
+          }
+        },
+        "required": [
+          "snapshot",
+          "report"
+        ],
+        "type": "object"
+      },
+      "RevisionCheckResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "$ref": "#/components/schemas/CheckReport"
+          },
+          "revision_receipt": {
+            "$ref": "#/components/schemas/RevisionReceipt"
+          }
+        },
+        "required": [
+          "check",
+          "revision_receipt"
+        ],
+        "type": "object"
+      },
+      "RevisionReceipt": {
+        "description": "Revision analysis beside an unchanged check report. The global previous-to-current comparison is authoritative. Isolated change evaluations report DIRECT_EFFECT_OBSERVED, NO_ISOLATED_EFFECT_OBSERVED or NOT_EVALUATED and cannot rule out interaction effects.",
+        "properties": {
+          "analysis": {
+            "type": "object"
+          },
+          "baseline": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "REEVALUATION_MATCHED",
+                  "REEVALUATION_MISMATCH",
+                  "EVALUATOR_CHANGED",
+                  "NOT_AVAILABLE"
+                ]
+              }
+            },
+            "type": "object"
+          },
+          "caller_owns_operational_decision": {
+            "const": true
+          },
+          "changes": {
+            "properties": {
+              "items": {
+                "items": {
+                  "properties": {
+                    "isolated": {
+                      "enum": [
+                        "DIRECT_EFFECT_OBSERVED",
+                        "NO_ISOLATED_EFFECT_OBSERVED",
+                        "NOT_EVALUATED"
+                      ]
+                    },
+                    "scope": {
+                      "enum": [
+                        "SNAPSHOT",
+                        "PROTOCOL",
+                        "REQUIRED_TOOL",
+                        "UNREQUIRED_TOOL"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "core_digest": {
+            "type": "string"
+          },
+          "current": {
+            "type": "object"
+          },
+          "explanation": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "global": {
+            "properties": {
+              "conclusion_transition": {
+                "enum": [
+                  "STILL_PASS",
+                  "NO_LONGER_PASS",
+                  "NOW_PASS",
+                  "STILL_NON_PASS_SAME_FINDINGS",
+                  "STILL_NON_PASS_FINDINGS_CHANGED"
+                ]
+              },
+              "previous_conclusion_holds": {
+                "type": "boolean"
+              },
+              "status": {
+                "enum": [
+                  "COMPLETE",
+                  "INCOMPLETE",
+                  "NOT_AVAILABLE"
+                ]
+              },
+              "transitions": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "per_change_analysis": {
+            "properties": {
+              "interaction_effects": {
+                "enum": [
+                  "INTERACTION_EFFECT_POSSIBLE",
+                  "SINGLE_CHANGE",
+                  "NO_CHANGES"
+                ]
+              },
+              "limit": {
+                "const": 32
+              },
+              "status": {
+                "enum": [
+                  "COMPLETE",
+                  "INCOMPLETE",
+                  "NOT_APPLICABLE",
+                  "NOT_AVAILABLE"
+                ]
+              }
+            },
+            "type": "object"
+          },
+          "previous": {
+            "type": "object"
+          },
+          "receipt_digest": {
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "exactlane.revision-receipt/0.1"
+          },
+          "source": {
+            "type": "object"
+          },
+          "subject": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schema_version",
+          "analysis",
+          "subject",
+          "previous",
+          "current",
+          "baseline",
+          "global",
+          "changes",
+          "per_change_analysis",
+          "explanation",
+          "caller_owns_operational_decision",
+          "source",
+          "limitations",
+          "core_digest",
+          "receipt_digest"
+        ],
+        "type": "object"
+      },
+      "SchemaDialectIdentifier": {
+        "description": "Absolute visible-ASCII URI compared by exact string equality",
+        "maxLength": 256,
+        "minLength": 3,
+        "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[!-~]+$",
+        "type": "string"
+      },
+      "SnapshotLintRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "requirements": {
+            "type": "object"
+          },
+          "snapshot": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "snapshot",
+          "requirements"
+        ],
+        "type": "object"
+      },
+      "SnapshotLintResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "type": "object"
+          },
+          "findings": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "detail": {
+                  "type": "string"
+                },
+                "expect": {
+                  "description": "What the evaluator would do with this precondition. Not a verdict.",
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "location",
+                "detail",
+                "expect"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "is_compatibility_evidence": {
+            "const": false
+          },
+          "live_endpoint_observed": {
+            "const": false
+          },
+          "note": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "object"
+          },
+          "schema_version": {
+            "const": "exactlane.snapshot-lint/0.1"
+          }
+        },
+        "required": [
+          "schema_version",
+          "profile",
+          "is_compatibility_evidence",
+          "live_endpoint_observed",
+          "note",
+          "findings",
+          "counts"
+        ],
+        "type": "object"
+      },
+      "SupportedConsumerRequirements": {
+        "description": "Profile 0.1 uses requirements 0.1, profile 0.2 uses requirements 0.2 and profile 0.3 uses requirements 0.3. Profile 0.3 also accepts JSON Schema annotation keywords in tool schemas.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ConsumerRequirements"
+          },
+          {
+            "$ref": "#/components/schemas/ConsumerRequirementsV02"
+          }
+        ]
+      },
+      "ToolRequirement": {
+        "additionalProperties": false,
+        "properties": {
+          "estimated_input_bytes": {
+            "maximum": 262144,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "provided_input_fields": {
+            "additionalProperties": {
+              "enum": [
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "array",
+                "object",
+                "null"
+              ],
+              "type": "string"
+            },
+            "maxProperties": 30,
+            "type": "object"
+          },
+          "required_input_schema_dialect": {
+            "$ref": "#/components/schemas/SchemaDialectIdentifier"
+          },
+          "required_output_paths": {
+            "additionalProperties": {
+              "enum": [
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "array",
+                "object",
+                "null"
+              ],
+              "type": "string"
+            },
+            "maxProperties": 30,
+            "type": "object"
+          },
+          "required_output_schema_dialect": {
+            "$ref": "#/components/schemas/SchemaDialectIdentifier"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ToolRequirementV02": {
+        "additionalProperties": false,
+        "properties": {
+          "array_item_schema_requirements": {
+            "description": "At most one input rule and one output rule; duplicate locations are rejected",
+            "items": {
+              "$ref": "#/components/schemas/ArrayItemSchemaRequirement"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "type": "array"
+          },
+          "estimated_input_bytes": {
+            "maximum": 262144,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "provided_input_fields": {
+            "additionalProperties": {
+              "enum": [
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "array",
+                "object",
+                "null"
+              ],
+              "type": "string"
+            },
+            "maxProperties": 30,
+            "type": "object"
+          },
+          "required_input_schema_dialect": {
+            "$ref": "#/components/schemas/SchemaDialectIdentifier"
+          },
+          "required_output_paths": {
+            "additionalProperties": {
+              "enum": [
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "array",
+                "object",
+                "null"
+              ],
+              "type": "string"
+            },
+            "maxProperties": 30,
+            "type": "object"
+          },
+          "required_output_schema_dialect": {
+            "$ref": "#/components/schemas/SchemaDialectIdentifier"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "UsageEventCreate": {
+        "additionalProperties": false,
+        "description": "Client-attested acknowledgement that a finished owned check report was consumed. POST after a finished check while the same credential still owns the run. Exactlane validates and records decision and report_consumed; it does not derive them.",
+        "properties": {
+          "autonomous": {
+            "type": "boolean"
+          },
+          "check_run_id": {
+            "description": "Owned finished check run id from POST /v0/checks or GET /v0/checks/{run_id}",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "decision": {
+            "description": "Client-attested operational decision supplied by the caller. Exactlane produces compatibility evidence; the caller owns the operational decision. Exactlane validates and records this value but does not derive it from the report, and there is no universal verdict-to-decision mapping.",
+            "enum": [
+              "CONTINUE",
+              "UPDATE_INTEGRATION",
+              "HOLD"
+            ],
+            "type": "string"
+          },
+          "integration_ref": {
+            "description": "Opaque caller integration identifier (letters, digits, dot, underscore, colon, hyphen)",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "is_demo": {
+            "type": "boolean"
+          },
+          "is_health_check": {
+            "type": "boolean"
+          },
+          "is_retry": {
+            "type": "boolean"
+          },
+          "occurred_at": {
+            "description": "RFC3339 timestamp. Must not be more than five minutes in the future or older than 45 days.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "platform_triggered": {
+            "type": "boolean"
+          },
+          "report_consumed": {
+            "description": "Required caller attestation that the finished report was consumed. Exactlane does not infer this from the check.",
+            "type": "boolean"
+          },
+          "trigger": {
+            "description": "Client-attested real-work category. Public values: NEW_WORK, DEPENDENCY_CHANGE, REQUIREMENTS_CHANGE, INTEGRATION_FAILURE, OTHER_REAL_WORK. Other strings return 422 INVALID_TRIGGER.",
+            "enum": [
+              "NEW_WORK",
+              "DEPENDENCY_CHANGE",
+              "REQUIREMENTS_CHANGE",
+              "INTEGRATION_FAILURE",
+              "OTHER_REAL_WORK"
+            ],
+            "type": "string"
+          },
+          "workflow_ref": {
+            "description": "Opaque caller workflow identifier (letters, digits, dot, underscore, colon, hyphen). Unique with integration_ref per principal; a second distinct body returns 409 DUPLICATE_WORKFLOW_EVENT.",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "check_run_id",
+          "integration_ref",
+          "workflow_ref",
+          "trigger",
+          "decision",
+          "report_consumed",
+          "autonomous",
+          "is_demo",
+          "is_retry",
+          "is_health_check",
+          "platform_triggered",
+          "occurred_at"
+        ],
+        "type": "object"
+      },
+      "UsageEventResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "usage_event": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "usage_event"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "agentBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "bootstrapBearer": {
+        "description": "Local operator bootstrap credential; not an agent credential",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Caller-specific MCP capability compatibility evidence for a specific agent workflow before reliance. Static snapshot versus requirements. A capability snapshot is a cached caller-provided claim, not live truth. No live probing. The caller owns CONTINUE, UPDATE_INTEGRATION, and HOLD. After a finished check, POST /v0/usage-events to attest that decision; report_consumed is required and Exactlane does not derive either field. Mutating REST writes except POST /v0/public-access/grants require Idempotency-Key. Streamable HTTP MCP at /mcp requires MCP-Protocol-Version, Mcp-Method, and params._meta as documented in /.well-known/exactlane.json. check_mcp_capability does not POST usage-events. Not a security scanner, certifier, or universal validator.",
+    "title": "Exactlane Preflight Phase 0A",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/.well-known/exactlane.json": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Manifest"
+          }
+        },
+        "summary": "Read the Exactlane MCP compatibility service manifest"
+      }
+    },
+    "/admin": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Private HTML overview"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          }
+        },
+        "security": [
+          {
+            "bootstrapBearer": []
+          }
+        ],
+        "summary": "Read local operational inspection view"
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1"
+          }
+        },
+        "summary": "Read this OpenAPI document"
+      }
+    },
+    "/v0/agents": {
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCreateResponse"
+                }
+              }
+            },
+            "description": "Credential returned once or on exact replay"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [
+          {
+            "bootstrapBearer": []
+          }
+        ],
+        "summary": "Create one administrator-authorized scoped principal"
+      }
+    },
+    "/v0/agents/{agent_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agent_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRevocationResponse"
+                }
+              }
+            },
+            "description": "Credential revoked"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [
+          {
+            "agentBearer": []
+          }
+        ],
+        "summary": "Revoke the caller's own principal"
+      }
+    },
+    "/v0/capabilities": {
+      "post": {
+        "description": "Idempotency-Key is required. The 201 body returns snapshot_digest, not snapshot bytes. A capability snapshot is a cached caller-provided claim, not live truth. After Public Preview grant expiry, the digest cannot be used to fetch bytes; keep inline bytes or re-submit. GET /v0/capabilities/{capability_id} returns snapshot bytes only while the owner credential is valid. There is no digest-fetch API.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapabilityCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilityResponse"
+                }
+              }
+            },
+            "description": "Capability revision created; body includes snapshot_digest, not snapshot bytes"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [
+          {
+            "agentBearer": []
+          }
+        ],
+        "summary": "Store an immutable caller-provided MCP snapshot revision"
+      }
+    },
+    "/v0/capabilities/{capability_id}": {
+      "get": {
+        "description": "Owner-only. Returns snapshot bytes while the caller credential is still valid. After Public Preview grant expiry the bearer is expired; snapshot_digest is not a retrieval key and cannot fetch bytes. There is no digest-fetch API.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "capability_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilityResponse"
+                }
+              }
+            },
+            "description": "Private capability revision"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [
+          {
+            "agentBearer": []
+          }
+        ],
+        "summary": "Read an owned private capability revision"
+      }
+    },
+    "/v0/checks": {
+      "post": {
+        "description": "Static only. Idempotency-Key is required. Compares a caller-provided MCP capability snapshot with caller workflow requirements. The snapshot is a cached claim, not live truth. Live targets and live source modes are rejected without network access. Exactlane produces caller-specific compatibility evidence; the caller owns CONTINUE, UPDATE_INTEGRATION, and HOLD. After a finished report, POST /v0/usage-events to attest how it was consumed; Exactlane does not derive that attestation from the verdict.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckResponse"
+                }
+              }
+            },
+            "description": "Finished bounded report, including report-level UNSUPPORTED or SYSTEM_ERROR when applicable"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request or profile rejected before a finished report exists; distinct from a finished report whose verdict is UNSUPPORTED"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Uncaught request or service failure for which no normal finished report is produced; distinct from a finished report whose verdict is SYSTEM_ERROR"
+          }
+        },
+        "security": [
+          {
+            "agentBearer": []
+          }
+        ],
+        "summary": "Run a supported mcp-consumer-fit profile against an owned caller-provided snapshot"
+      }
+    },
+    "/v0/checks/{run_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckResponse"
+                }
+              }
+            },
+            "description": "Check lifecycle and report"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [
+          {
+            "agentBearer": []
+          }
+        ],
+        "summary": "Read an owned private check report"
+      }
+    },
+    "/v0/public-access/grants": {
+      "post": {
+        "description": "Unauthenticated. Body is {} or an optional display_label. Idempotency-Key is optional on this grant route only. Subsequent Public Preview writes (POST /v0/capabilities, POST /v0/checks, POST /v0/usage-events) require Idempotency-Key. When EXACTLANE_PUBLIC_ACCESS_ENABLED is unset or false, the route still exists and returns 403 PUBLIC_ACCESS_DISABLED. When Public Agent Preview is enabled, grant issuance requires trusted-proxy process status CONFIGURED and a verified per-request client identity through that trusted proxy. CONFIGURED means the settings parse; it does not guarantee every request has a usable identity. Untrusted peers, missing headers, malformed values, and multi-hop lists return HTTP 503 PUBLIC_ACCESS_IDENTITY_UNAVAILABLE on this REST route and do not hash a shared loopback proxy peer. MCP check_mcp_capability uses the same grant path but returns HTTP 200 with result.isError and structuredContent.error.code PUBLIC_ACCESS_IDENTITY_UNAVAILABLE; it does not expose HTTP 503. The documented Cloudflare path prefers CF-Connecting-IP. X-Forwarded-For remains supported only for a trusted ingress that overwrites it with one single valid IP; multi-hop X-Forwarded-For fails closed because Exactlane cannot choose a hop. Issued credentials last 30 minutes, use Phase 0A agent scopes only, and never classify traffic as EXTERNAL_REVIEWED. The bearer token is disclosed only on the original 201; exact Idempotency-Key replay for the same hashed client identity returns 200 without the token and cannot recover another caller's credential. Different hashed client identities use independent idempotency namespaces. Callers who share a hashed identity (NAT, VPN, or shared network egress) share that namespace. Issuance 429 responses include Retry-After. Per-client limits are the normal bottleneck; global hour/day values are emergency ceilings. After grant expiry, snapshot_digest cannot be used to fetch snapshot bytes; keep inline bytes or re-submit. A capability snapshot is a cached caller-provided claim, not live truth. Caller owns CONTINUE/UPDATE/HOLD. Live probing remains off. Self-revoke with DELETE /v0/agents/{agent_id}.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OptionalIdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicAccessGrantCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAccessGrantResponse"
+                }
+              }
+            },
+            "description": "Exact Idempotency-Key replay without the bearer token"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAccessGrantResponse"
+                }
+              }
+            },
+            "description": "Preview credential returned once; only a digest is stored"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Public Agent Preview is disabled (PUBLIC_ACCESS_DISABLED)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Public Agent Preview issuance limited. Per-client limits are the normal bottleneck; global hour/day values are emergency ceilings.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the caller may retry",
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Public Agent Preview identity is not ready (PUBLIC_ACCESS_IDENTITY_UNAVAILABLE)"
+          }
+        },
+        "security": [],
+        "summary": "Issue short-lived Public Agent Preview access"
+      }
+    },
+    "/v0/revision-checks": {
+      "post": {
+        "description": "Static only. Idempotency-Key is required, and the credential needs checks:write and capabilities:write. Send the new snapshot, the same requirements, and previous.snapshot with its finished previous.report. The response carries the normal check report unchanged plus a separate revision_receipt. Exactlane re-evaluates the previous snapshot instead of trusting previous.report, and does not look up or depend on earlier issuance. The global previous-to-current comparison is authoritative; at most 32 changes are also evaluated in isolation, which cannot rule out interaction effects. Consumes one capability revision and one check. Request, report, runtime and quota limits are the same as for POST /v0/checks; the receipt is at most 16 KiB. There is no receipt lookup route. The caller owns CONTINUE, UPDATE_INTEGRATION, and HOLD.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionCheckCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevisionCheckResponse"
+                }
+              }
+            },
+            "description": "Finished check report plus revision receipt; incomplete analysis is marked, never omitted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound, including PREVIOUS_REPORT_TOO_LARGE and PREVIOUS_RECEIPT_TOO_LARGE above 16 KiB"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request rejected before a report exists, including PREVIOUS_SNAPSHOT_MISMATCH, REQUIREMENTS_CHANGED, REVISION_COMPARISON_MISMATCH, PREVIOUS_REPORT_INVALID, PREVIOUS_RECEIPT_INVALID and PREVIOUS_RECEIPT_MISMATCH"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [
+          {
+            "agentBearer": []
+          }
+        ],
+        "summary": "Run a check on a new caller-provided revision and compare it with a previous check"
+      }
+    },
+    "/v0/snapshot-lint": {
+      "post": {
+        "description": "Unauthenticated, no Idempotency-Key, no quota, and no stored state. This route names preconditions a caller can fix before a check: unsupported JSON Schema keywords for the selected profile, snapshot/requirements version pairing, protocol revision and transport outside the profile, required tools the snapshot does not declare, estimated_input_bytes without a declared max_input_bytes, and snapshot staleness. It runs no evaluator, issues no credential, writes nothing, and reads no stored resource. A lint is not a compatibility check and is not evidence: it reports what the evaluator would be unable to decide, never whether a capability fits. Only a finished report carries a verdict, and the caller still owns CONTINUE, UPDATE_INTEGRATION, and HOLD. Live probing remains off.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotLintRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotLintResponse"
+                }
+              }
+            },
+            "description": "Deterministic preconditions; not compatibility evidence"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [],
+        "summary": "Report deterministic preconditions before spending a check"
+      }
+    },
+    "/v0/usage-events": {
+      "post": {
+        "description": "Call after a finished owned check, while the same credential is still valid. Idempotency-Key is required. decision is a client-attested CONTINUE, UPDATE_INTEGRATION, or HOLD value; Exactlane does not derive it from the report and there is no universal verdict-to-decision mapping. report_consumed is a required boolean. trigger must be one of NEW_WORK, DEPENDENCY_CHANGE, REQUIREMENTS_CHANGE, INTEGRATION_FAILURE, OTHER_REAL_WORK. MCP check_mcp_capability never creates this event (usage_event_created is false).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageEventCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageEventResponse"
+                }
+              }
+            },
+            "description": "Client-attested usage event"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Malformed request or idempotency key"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid credential"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Insufficient scope or disabled live mode"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource absent or not owned"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Idempotency or unique-event conflict"
+          },
+          "411": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Content-Length is required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request exceeds a hard bound"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Media type or content encoding is unsupported"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Request shape or fixed profile is unsupported"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Principal quota exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bounded internal failure"
+          }
+        },
+        "security": [
+          {
+            "agentBearer": []
+          }
+        ],
+        "summary": "Attest how a finished check report was consumed"
+      }
+    }
+  }
+}
