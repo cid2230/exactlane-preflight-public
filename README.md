@@ -44,9 +44,13 @@ Canonical public discovery origin:
 
 Snapshots of these documents are mirrored in `discovery/` so they can be read and diffed here. The live endpoints above are authoritative; the snapshots are regenerated from the deployed commit.
 
+## Notes
+
+- [MCP tool schemas that are valid on one side and unusable on the other](notes/host-compat-reference.md): sourced cases where hosts or clients silently drop or reject tool schemas, and what Preflight can and cannot check about them.
+
 ## Scope of this repository
 
-Public discovery anchor only.
+Public discovery anchor and reference notes.
 
 Source implementation is **not** part of this public discovery repository.
 
