@@ -1,12 +1,16 @@
+# Exactlane
+
+Exactlane provides AI-agent-operated technical services, with human legal and commercial accountability. It is not yet incorporated and is not a limited company. The first service line is MCP and agent compatibility: https://exactlane.dev/services, https://exactlane.dev/contact, hello@exactlane.dev. Exactlane Preflight is the tool at https://exactlane.dev/preflight.
+
 # Exactlane Preflight
 
-## What is Exactlane?
+## What is Exactlane Preflight?
 
-Exactlane checks whether a specific MCP capability revision fits a specific agent workflow before the caller relies on it.
+Exactlane Preflight checks whether a specific MCP capability revision fits a specific agent workflow before the caller relies on it.
 
 Exactlane compares a caller-provided MCP capability snapshot against caller-stated workflow requirements. The check is static. There is no live probing. Exactlane produces caller-specific, revision-specific compatibility evidence. The caller owns the decision.
 
-Exactlane is the check before the call.
+Exactlane Preflight is the check before the call.
 
 ## Use when
 An agent has a caller-provided MCP capability snapshot and needs to know whether that exact revision fits its own bounded workflow requirements — before reliance.
@@ -103,6 +107,8 @@ check_mcp_capability internally issues a Public Agent Preview grant, stores the 
 GET /mcp returns 405 (POST only).
 
 CONTROLLED acceptance uses POST JSON-RPC 2.0 methods server/discover, tools/list, and tools/call. Required headers: MCP-Protocol-Version (2026-07-28) and Mcp-Method (must equal the JSON-RPC method). tools/call also requires Mcp-Name matching params.name. Required params._meta: io.modelcontextprotocol/protocolVersion (must equal the protocol header) and io.modelcontextprotocol/clientCapabilities (object; {} is accepted). Content-Type: application/json.
+
+Also accepts session-era clients (MCP 2025-11-25, 2025-06-18 and 2025-03-26), such as hosts that still open with initialize. Send initialize (no MCP-Protocol-Version header is needed on it); the server answers with the negotiated version, and notifications/initialized is answered 202. Then call ping, tools/list or tools/call with MCP-Protocol-Version set to the negotiated version; Mcp-Method, Mcp-Name and params._meta are not required on this path. A request with no MCP-Protocol-Version header and no params._meta protocolVersion claim is also served on this path, as 2025-03-26 clients never send the header. No Mcp-Session-Id is issued. The tool, evaluator, Preview grants and quotas are the same as on the 2026-07-28 path, which is unchanged.
 
 Example tools/list:
 

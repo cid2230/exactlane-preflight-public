@@ -1,4 +1,21 @@
 {
+  "also_accepts": {
+    "handshake": "initialize (no MCP-Protocol-Version header needed on initialize), then notifications/initialized, answered 202",
+    "headers": "After initialize, send MCP-Protocol-Version with the negotiated version. Mcp-Method, Mcp-Name and params._meta are not required on this path. A request with no MCP-Protocol-Version header and no params._meta protocolVersion claim is also served on this path (2025-03-26 clients never send the header).",
+    "methods": [
+      "initialize",
+      "ping",
+      "tools/list",
+      "tools/call"
+    ],
+    "note": "Same tool, evaluator, Preview grants and quotas as the 2026-07-28 path.",
+    "protocol_versions": [
+      "2025-11-25",
+      "2025-06-18",
+      "2025-03-26"
+    ],
+    "sessions": "No Mcp-Session-Id is issued; the server is stateless."
+  },
   "controlled_methods": [
     "server/discover",
     "tools/list",
